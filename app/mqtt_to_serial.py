@@ -12,7 +12,7 @@ SERIAL_PORT = "/dev/ttyAMA0"
 BAUD_RATE = 1000000
 
 # The IP address of your laptop running the Mosquitto MQTT broker.
-MQTT_BROKER_HOST = "172.29.112.1"  # IMPORTANT: CHANGE THIS TO YOUR LAPTOP'S IP
+MQTT_BROKER_HOST = "192.168.0.127"  # IMPORTANT: CHANGE THIS TO YOUR LAPTOP'S IP
 
 TX_TOPIC = "robot/tx"  # Topic for messages FROM laptop TO Pi (and then to robot)
 RX_TOPIC = "robot/rx"  # Topic for messages FROM Pi (and robot) TO laptop
