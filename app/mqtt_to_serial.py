@@ -16,7 +16,13 @@ TX_TOPIC = "robot/tx"  # Topic for messages FROM laptop TO Pi (and then to robot
 RX_TOPIC = "robot/rx"  # Topic for messages FROM Pi (and robot) TO laptop
 parser = argparse.ArgumentParser(description="MQTT:left_right_arrow:Serial bridge for Feetech bus")
 parser.add_argument("--loglevel", default="info", choices=["debug", "info", "warning", "error", "critical"], help="Set logging level")
+parser.add_argument("--serial_port", default=SERIAL_PORT, help="Serial device path e.g. /dev/ttyUSB0")
+parser.add_argument("--baud", type=int, default=BAUD_RATE, help="Serial baud rate")
+parser.add_argument("--broker", default=MQTT_BROKER_HOST, help="MQTT broker host")
 args = parser.parse_args()
+SERIAL_PORT = args.serial_port
+BAUD_RATE = args.baud
+MQTT_BROKER_HOST = args.broker
 log_level = getattr(logging, args.loglevel.upper())
 logging.basicConfig(level=log_level, format='%(asctime)s - %(levelname)s - %(message)s')
 
