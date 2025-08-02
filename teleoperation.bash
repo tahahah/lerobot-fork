@@ -23,3 +23,5 @@ python -m lerobot.teleoperate \
   --robot.urdf_path="/mnt/d/repos/lerobot/so101_new_calib.urdf" \
   --teleop.type=gamepad \
   --display_data=true
+
+python -m lerobot.teleoperate --robot.type=so100_follower_end_effector --robot.port=mqtt://localhost --robot.id=my_awesome_follower_arm --robot.urdf_path="D:\repos\lerobot\so101_new_calib.urdf" --teleop.type=gamepad --display_data=true
