@@ -1,23 +1,24 @@
 #!/usr/bin/env python3
 import logging
+import argparse
 import serial
 import paho.mqtt.client as mq
 import time
-
 # --- Configuration ---
 # The serial port connected to the robot's motor controller on the Pi.
 # For Pi 5, this is typically "/dev/ttyAMA0" for GPIO pins 14/15.
 SERIAL_PORT = "/dev/ttyAMA0"
 # Match the robot's baud rate, often 1,000,000 for these controllers.
 BAUD_RATE = 1000000
-
 # The IP address of your laptop running the Mosquitto MQTT broker.
 MQTT_BROKER_HOST = "192.168.0.209"  # IMPORTANT: CHANGE THIS TO YOUR LAPTOP'S IP
-
 TX_TOPIC = "robot/tx"  # Topic for messages FROM laptop TO Pi (and then to robot)
 RX_TOPIC = "robot/rx"  # Topic for messages FROM Pi (and robot) TO laptop
-
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+parser = argparse.ArgumentParser(description="MQTT:left_right_arrow:Serial bridge for Feetech bus")
+parser.add_argument("--loglevel", default="info", choices=["debug", "info", "warning", "error", "critical"], help="Set logging level")
+args = parser.parse_args()
+log_level = getattr(logging, args.loglevel.upper())
+logging.basicConfig(level=log_level, format='%(asctime)s - %(levelname)s - %(message)s')
 
 def on_connect(client, userdata, flags, rc):
     if rc == 0:
