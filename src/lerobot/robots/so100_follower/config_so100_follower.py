@@ -27,6 +27,13 @@ class SO100FollowerConfig(RobotConfig):
     # Port to connect to the arm
     port: str
 
+    # Bus communication timeout in milliseconds for the Feetech SDK.
+    # A higher value (e.g., 50) can make the connection more robust to latency.
+    bus_timeout_ms: int = 50
+
+    # MQTT read timeout in seconds.
+    mqtt_timeout: float = 0.2
+
     disable_torque_on_disconnect: bool = True
 
     # `max_relative_target` limits the magnitude of the relative positional target vector for safety purposes.

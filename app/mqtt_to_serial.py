@@ -70,7 +70,7 @@ if __name__ == "__main__":
         while True:
             if ser.in_waiting > 0:
                 data = ser.read(ser.in_waiting)
-                client.publish(RX_TOPIC, data, qos=0)
+                client.publish(RX_TOPIC, data, qos=1)
                 logging.debug(f"Read from serial and published to MQTT: {data.hex()}")
             time.sleep(0.001)  # Prevent high CPU usage
     except KeyboardInterrupt:

@@ -91,6 +91,7 @@ class SO100Follower(Robot):
             raise DeviceAlreadyConnectedError(f"{self} already connected")
 
         self.bus.connect()
+        self.bus.set_timeout(self.config.bus_timeout_ms)
         if not self.is_calibrated and calibrate:
             logger.info(
                 "Mismatch between calibration values in the motor and the calibration file or no calibration file found"

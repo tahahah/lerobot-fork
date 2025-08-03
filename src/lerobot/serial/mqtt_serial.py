@@ -45,7 +45,7 @@ class MQTTSerial:
         if not isinstance(data, (bytes, str)):
             raise TypeError(f"Unsupported payload type for MQTTSerial.write: {type(data)}")
         # logging.info(f"MQTTSerial TX → {self._tx_topic}: {data.hex() if isinstance(data, bytes) else data}")
-        self._cli.publish(self._tx_topic, data, qos=0)
+        self._cli.publish(self._tx_topic, data, qos=1)
         return len(data)
 
     def read(self, n: int = 1) -> bytes:
