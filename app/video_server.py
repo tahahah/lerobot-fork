@@ -13,6 +13,39 @@ logging.basicConfig(
 )
 
 
+def find_camera_device():
+    """Find a camera device with 'Video Capture' capabilities using v4l2-ctl."""
+    try:
+        # Execute the v4l2-ctl command to list devices and their capabilities
+        result = subprocess.run(['v4l2-ctl', '--list-devices'], capture_output=True, text=True, check=True)
+        output = result.stdout
+        
+        # Parse the output to find a device with video capture capabilities
+        devices = output.strip().split('\n\n')
+        for device_info in devices:
+            lines = device_info.strip().split('\n')
+            # The first line is the device name, subsequent lines are device nodes
+            device_name = lines[0].strip()
+            # Check if it's a known camera name or has capture capabilities implicitly
+            # The check for 'Video Capture' is more robust
+            for line in lines[1:]:
+                if line.strip().startswith('/dev/video'):
+                    device_node = line.strip()
+                    # Check capabilities of this specific device node
+                    try:
+                        cap_result = subprocess.run(['v4l2-ctl', '-d', device_node, '--all'], capture_output=True, text=True, check=True)
+                        if 'Video Capture' in cap_result.stdout:
+                            print(f"Found video capture device: {device_node} for {device_name}")
+                            return device_node
+                    except (subprocess.CalledProcessError, FileNotFoundError):
+                        # This node might not support query or v4l2-ctl has issues with it, continue
+                        continue
+    except (FileNotFoundError, subprocess.CalledProcessError) as e:
+        print(f"Error running v4l2-ctl: {e}")
+        print("Please ensure 'v4l-utils' is installed ('sudo apt-get install v4l-utils').")
+        return None
+    return None
+
 class VideoStreamer(pb2g.VideoStreamServicer):
     """Provides a gRPC service to stream video frames from a camera."""
 
@@ -24,16 +57,20 @@ class VideoStreamer(pb2g.VideoStreamServicer):
         """Reads frames from the camera, encodes them as JPEG, and streams them."""
         logging.info("Client connected, starting video stream.")
         cap = None
-        # Try device indices 0 through 9 to find a working camera.
-        for i in range(10):
-            cap = cv2.VideoCapture(i)
-            if cap.isOpened():
-                logging.info(f"Successfully opened camera at index {i}.")
-                break
-        else:
-            logging.error("Could not open any video device.")
-            context.abort(grpc.StatusCode.NOT_FOUND, "Camera not found.")
-            return
+        # Find a camera device using v4l2-ctl
+        camera_device = find_camera_device()
+        if camera_device is None:
+            logging.error("No camera device found with 'Video Capture' capabilities.")
+            context.abort(grpc.StatusCode.NOT_FOUND, "Camera not found")
+
+        logging.info(f"Found camera: {camera_device}")
+
+        # Try to open the video capture device
+        cap = cv2.VideoCapture(camera_device, cv2.CAP_V4L2)
+
+        if not cap.isOpened():
+            logging.error(f"Could not open video stream at {camera_device}")
+            context.abort(grpc.StatusCode.UNAVAILABLE, f"Could not open video stream at {camera_device}")
 
         try:
             while context.is_active():
