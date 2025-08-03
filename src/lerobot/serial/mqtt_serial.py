@@ -44,7 +44,7 @@ class MQTTSerial:
         # Safety: make sure we only send bytes hereafter.
         if not isinstance(data, (bytes, str)):
             raise TypeError(f"Unsupported payload type for MQTTSerial.write: {type(data)}")
-        logging.info(f"MQTTSerial TX → {self._tx_topic}: {data.hex() if isinstance(data, bytes) else data}")
+        # logging.info(f"MQTTSerial TX → {self._tx_topic}: {data.hex() if isinstance(data, bytes) else data}")
         self._cli.publish(self._tx_topic, data, qos=0)
         return len(data)
 
@@ -74,7 +74,7 @@ class MQTTSerial:
             self._rx_buf.extend(extra)
             buf = buf[:n]
 
-        logging.info(f"MQTTSerial RX ← {self._tx_topic}: {bytes(buf).hex()}")
+        # logging.info(f"MQTTSerial RX ← {self._tx_topic}: {bytes(buf).hex()}")
         return bytes(buf)
 
     def flush(self):
