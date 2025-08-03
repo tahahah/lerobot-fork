@@ -13,6 +13,7 @@ class MQTTSerial:
 
     def __init__(self, host: str, tx_topic: str, rx_topic: str, timeout: float = 0.1):
         self._q = queue.Queue()
+        self._rx_buf = bytearray()  # buffer for partial packets
         self._cli = mq.Client()
         def _on_connect(c, _u, _f, rc):
             if rc == 0:
@@ -22,6 +23,7 @@ class MQTTSerial:
             else:
                 logging.error(f"MQTTSerial failed to connect, rc={rc}")
         self._cli.on_connect = _on_connect
+        # Push raw payload bytes into queue
         self._cli.on_message = lambda _c, _u, msg: self._q.put(msg.payload)
         self._cli.connect(host)
         self._cli.loop_start()
@@ -54,10 +56,25 @@ class MQTTSerial:
             try:
                 # Read all available bytes from the queue up to n
                 chunk = self._q.get_nowait()
-                logging.info(f"MQTTSerial RX ← {self._tx_topic}: {chunk.hex()}")
-                buf.extend(chunk)
+                # Append incoming chunk to internal buffer first
+                self._rx_buf.extend(chunk)
             except queue.Empty:
                 time.sleep(0.001)
+
+            # If we already have buffered data, use it first
+            while len(buf) < n and self._rx_buf:
+                buf.append(self._rx_buf.pop(0))
+
+            if len(buf) == 0:
+                continue
+
+        # If we collected more than requested, keep the remainder for next read
+        if len(buf) > n:
+            extra = buf[n:]
+            self._rx_buf.extend(extra)
+            buf = buf[:n]
+
+        logging.info(f"MQTTSerial RX ← {self._tx_topic}: {bytes(buf).hex()}")
         return bytes(buf)
 
     def flush(self):
