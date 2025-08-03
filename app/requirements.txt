@@ -2,3 +2,4 @@ paho-mqtt
 pyserial
 grpcio
 opencv-python-headless
+protobuf
