@@ -125,8 +125,61 @@ class FeetechMotorsBus(MotorsBus):
         self._assert_same_protocol()
         import scservo_sdk as scs
 
+        # Initialise a PortHandler from the Feetech SDK *before* we potentially
+        # swap its underlying serial object with an MQTT based shim.  The SDK
+        # does **not** attempt to open the port in the constructor – it merely
+        # stores the name – so this is safe even if the string is not a real
+        # serial port (e.g. "mqtt://localhost").
         self.port_handler = scs.PortHandler(self.port)
-        # HACK: monkeypatch
+        # Some versions of the Feetech SDK initialise `is_open` to `True`.  We
+        # want the bus to report "disconnected" until `openPort()` (or our
+        # MQTT shim) explicitly marks it as open.  Force it to False here to
+        # avoid false positives in `MotorsBus.is_connected`.
+        self.port_handler.is_open = False  # type: ignore[attr-defined]
+
+        # ------------------------------------------------------------------
+        # MQTT **shim**
+        # ------------------------------------------------------------------
+        # Users can pass an "mqtt://host" URI as the *port* argument to control
+        # the robot through an MQTT↔︎serial bridge running on another device
+        # (e.g. a Raspberry Pi connected to the motor controller).  When such a
+        # URI is detected we replace the pyserial `Serial` instance used by the
+        # SDK with our own `MQTTSerial` implementation that mimics the minimal
+        # serial API expected by the SDK (read / write / flush / in_waiting).
+        # No other part of the codebase needs to be aware of this substitution.
+        from urllib.parse import urlparse
+        from lerobot.serial.mqtt_serial import MQTTSerial
+
+        parsed = urlparse(self.port)
+        if parsed.scheme == "mqtt":
+            host = parsed.hostname or "localhost"
+            # Default topics – can be customised later by embedding them in the
+            # URI path if needed (e.g. mqtt://host/robot123).
+            tx_topic = "robot/tx"
+            rx_topic = "robot/rx"
+
+            mqtt_ser = MQTTSerial(host=host, tx_topic=tx_topic, rx_topic=rx_topic)
+            # Swap the underlying serial object used by the SDK.
+            self.port_handler.ser = mqtt_ser
+            # Monkey-patch helpers so that the SDK thinks the port opens/closes
+            # correctly *without* marking the port as open before the initial
+            # `connect()` check.
+            def _open_port() -> bool:  # noqa: D401
+                """Mimic opening a port for the SDK (no-op for MQTT)."""
+                self.port_handler.is_open = True  # type: ignore[attr-defined]
+                return True
+
+            def _close_port() -> None:  # noqa: D401
+                mqtt_ser.close()
+                self.port_handler.is_open = False  # type: ignore[attr-defined]
+
+            self.port_handler.openPort = _open_port  # type: ignore[assignment]
+            self.port_handler.closePort = _close_port  # type: ignore[assignment]
+            self.port_handler.clearPort = mqtt_ser.flush  # type: ignore[assignment]
+            # Baud-rate is irrelevant for MQTT – always report success.
+            self.port_handler.setBaudRate = lambda _baud: True  # type: ignore[assignment]
+
+        # HACK: monkey-patch packet timeout calculation (same as before)
         self.port_handler.setPacketTimeout = patch_setPacketTimeout.__get__(
             self.port_handler, scs.PortHandler
         )
