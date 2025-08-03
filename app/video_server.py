@@ -23,11 +23,15 @@ class VideoStreamer(pb2g.VideoStreamServicer):
     def StreamFrames(self, request, context):
         """Reads frames from the camera, encodes them as JPEG, and streams them."""
         logging.info("Client connected, starting video stream.")
-        # Use 0 for the default camera. Change if you have multiple cameras.
-        cap = cv2.VideoCapture(0)
-
-        if not cap.isOpened():
-            logging.error("Could not open video device.")
+        cap = None
+        # Try device indices 0 through 9 to find a working camera.
+        for i in range(10):
+            cap = cv2.VideoCapture(i)
+            if cap.isOpened():
+                logging.info(f"Successfully opened camera at index {i}.")
+                break
+        else:
+            logging.error("Could not open any video device.")
             context.abort(grpc.StatusCode.NOT_FOUND, "Camera not found.")
             return
 
