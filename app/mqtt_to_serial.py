@@ -4,6 +4,7 @@ import argparse
 import serial
 import paho.mqtt.client as mq
 import time
+
 # --- Configuration ---
 # The serial port connected to the robot's motor controller on the Pi.
 # For Pi 5, this is typically "/dev/ttyAMA0" for GPIO pins 14/15.
@@ -14,6 +15,7 @@ BAUD_RATE = 1000000
 MQTT_BROKER_HOST = "192.168.0.209"  # IMPORTANT: CHANGE THIS TO YOUR LAPTOP'S IP
 TX_TOPIC = "robot/tx"  # Topic for messages FROM laptop TO Pi (and then to robot)
 RX_TOPIC = "robot/rx"  # Topic for messages FROM Pi (and robot) TO laptop
+
 parser = argparse.ArgumentParser(description="MQTT:left_right_arrow:Serial bridge for Feetech bus")
 parser.add_argument("--loglevel", default="info", choices=["debug", "info", "warning", "error", "critical"], help="Set logging level")
 parser.add_argument("--serial_port", default=SERIAL_PORT, help="Serial device path e.g. /dev/ttyUSB0")
